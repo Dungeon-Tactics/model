@@ -1,0 +1,883 @@
+//
+//  cornelrpg.h
+//  RPG v1
+//
+//  Created by Devon Cornel on 4/20/13.
+//  Copyright (c) 2013 Fresno State University. All rights reserved.
+//
+
+#ifndef RPG_v1_cornelrpg_h
+#define RPG_v1_cornelrpg_h
+
+#include <iostream>
+#include <vector>
+#include <math.h>
+using namespace std;
+
+struct tag
+{
+    
+    int t; //place in list
+    string name; 
+    
+    void set_tag(int a, string n)
+    {
+        t=a; name=n;
+    }
+    
+};
+
+struct material
+{
+    string name;
+    int me_bonus;
+    int r_bonus;
+    int ma_bonus;
+    int dam_bonus;
+    int ench_bonus;
+    int lv_req_bonus;
+    
+    void set_mat(string n, int meb, int rb, int mab, int db, int eb, int lr)
+    {
+        name=n; me_bonus=meb; r_bonus=rb; ma_bonus=mab; dam_bonus=db; ench_bonus=eb; lv_req_bonus=lr;
+    }
+};
+
+
+struct status_effect
+{
+    
+    string name;
+    int duration; //0 if permanent
+    int onset; //rounds until effect
+    int damage; //sided damage dice, number will be determined with combat function
+    double scale; //how many dice scales per lv (0.5 means at lv 10 there will be 5 dice)
+    int init_mod;
+    int dodge_bonus;
+    int dr_mod;
+    int str_mod;
+    int con_mod;
+    int dex_mod;
+    int intel_mod;
+    int wis_mod;
+    int cha_mod;
+    int mana_mod;
+    int saves_mod; //all saves
+    double mana_regen_mod;
+    double health_regen_mod;
+    double spell_resist_mod;
+    int is_negative; //no(0,does damage) yes(1, heals)
+    //status_effect *sub;
+    
+    void set_status_effect(string n, int d, int o, int dam, double sc, int i, int dod, int dm, int s, int c, int de, int inte, int w, int ch, int m, int sa, double mr, double hr, double sp, int ineg)
+    {
+        name=n; duration=d; onset=o; damage=dam; scale=sc; init_mod=i; dodge_bonus=dod; dr_mod=dm; str_mod=s, con_mod=c; dex_mod=de; intel_mod=inte; wis_mod=w; cha_mod=ch; mana_mod=m; saves_mod=sa; mana_regen_mod=mr; health_regen_mod=hr; spell_resist_mod=sp; is_negative=ineg;
+    }
+    
+    int get_i(string s)
+    {
+        if(s=="init_mod") 
+            return init_mod;
+        if(s=="str_mod") 
+            return str_mod;
+        if(s=="con_mod") 
+            return con_mod;
+        if(s=="dex_mod") 
+            return dex_mod;
+        if(s=="intel_mod") 
+            return intel_mod;
+        if(s=="wis_mod") 
+            return wis_mod;
+        if(s=="cha_mod") 
+            return cha_mod;
+        if(s=="mana_mod") 
+            return mana_mod;
+        if(s=="dr_mod") 
+            return dr_mod;
+        if(s=="saves_mod") 
+            return saves_mod;
+        if(s=="dodge_bonus") 
+            return dodge_bonus;
+
+        
+
+        
+        return -1;
+    }
+    
+    double get_d(string s)
+    {
+        if(s=="mana_regen_mod") 
+            return mana_regen_mod;
+        if(s=="health_regen_mod") 
+            return mana_regen_mod;
+        if(s=="spell_resist_mod")
+            return spell_resist_mod;
+        return -1;
+    }
+    
+};
+
+class equipment
+{
+public:
+    string name;
+    int type; //empty(0),melee(1),ranged(2),magic(3)
+    int ac_bonus;
+    material mat;
+    int dodge_bonus;
+    int max_ench;
+    int lv_req;
+    int me_att_bonus;
+    int r_att_bonus;
+    int ma_att_bonus;
+    int damage; //highest hit
+    int crit; //lowest crit out of 20
+    int position; //head(0),neck(1),chest(2),back(3),wrist(4),glove(5),one hand(6),two-handed(7),finger(8),waist(9), legs(10), feet(11), aura(12)
+    status_effect se;
+    vector<equipment> contents;
+    double weight;
+    int gold_value;
+    int max_weight; //if container
+    int max_content_count; //if container
+    
+    void set_equipment(string n, int t, int ac, material mt, int d, int dod, int en, int lr, int c, int me, int r, int ma, int p, status_effect s, double w, int gv, int mw, int mcc)
+    {
+        name=n; type=t; ac_bonus=ac; mat=mt; dodge_bonus=dod; max_ench=en; lv_req=lr; me_att_bonus=me; r_att_bonus=r; ma_att_bonus=ma; damage=d; crit=c; position=p; weight=w; gold_value=gv; max_weight=mw; max_content_count=mcc; se=s;
+        
+    }
+    
+};
+
+
+int ding(int lv);
+
+int ding(int lv)
+{
+    double total=0;
+    for(int i=1; i<lv; i++)
+    {
+        total += floor(i+300*pow(2, i/7));
+    }
+    
+    return floor(total/4);
+}
+
+
+
+class character
+{   
+public:
+    string name;
+    int current_health;
+    int level;
+    int str;
+    int con;
+    int dex;
+    int cha;
+    int wis;
+    int intel;
+    int arrows;
+    int gold;
+    int experience;
+    int experience_ding;
+    int me_att;
+    int r_att;
+    int ma_att;
+
+        
+    vector<equipment> cequipment_list; //head(0),neck(1),chest(2),back(3),wrist(4),glove(5),main hand(6),off-hand(7),two_hand(8),finger1(9),finger2(10), waist(11), legs(12), feet(13), aura(14), 
+    
+    vector<status_effect> spell_effect_list; //offensive spell list
+    
+    vector<int> temp_istats; //health(0),init(1),str(2),con(3),dex(4),intel(5),wis(6),cha(7),mana(8),dr(9), fort(10), reflex(11), will(12), curent carry weight(13), max carry weight(14), dodge(15)
+    
+    vector<double> temp_dstats; //mana_regen(0),health_regen(1), spell resist(2)
+    
+    vector<status_effect> cstatus_effect_list; //currently affecting character
+    
+    //---------------------------------------------------------------------------------------
+    int get_carry_weight()
+    {
+        int total=0;
+        for(int i=0; i<=cequipment_list.size()-1; i++)
+        {
+            total += cequipment_list[i].weight;
+        }
+        return total;
+    }
+    
+    int get_ibonus(string s) //for update
+    {
+        int total=0;
+        
+        for(int i=0; i<=cstatus_effect_list.size()-1; i++)
+        {
+            
+            total += cstatus_effect_list[i].get_i(s);
+            
+        }
+        for(int i=0; i<=cequipment_list.size()-1; i++)
+        {
+            if(cequipment_list[i].type!=0)
+            total += cequipment_list[i].se.get_i(s);
+            
+        }
+        return total;
+    }
+    
+    double get_dbonus(string s) //for update
+    {
+        double total=0;
+        for(int i=0; i<=cstatus_effect_list.size()-1; i++)
+        {
+            total += cstatus_effect_list[i].get_d(s);
+        }
+        for(int i=0; i<=cequipment_list.size()-1; i++)
+        {
+            total += cequipment_list[i].se.get_d(s);
+        }
+        return total;
+    }
+
+        
+    int get_mod(int a)
+    {
+        return (a-10)/2;
+    }
+    
+    void set_character(string n, int l, int s, int c, int de, int i, int w, int ch) //lv1
+    {
+        level=l; name=n; str=s; con=c; dex=de; intel=i; wis=w; cha=ch;
+        
+        gold=0;
+        level=1;
+        arrows=0;
+        experience=0;
+        
+        current_health=10+get_mod(con);
+        
+        equipment e;
+        e.type=0;
+        for(int i=0; i<=14; i++) //equipment
+        {
+            cequipment_list.push_back(e); //set empty to everything
+        }
+        
+        for(int i=0; i<=15; i++) //istats
+        {
+            temp_istats.push_back(0); //temp stats are 0 to start with (update sets them)
+        }
+        
+        for(int i=0; i<=2; i++) //dstats
+        {
+            temp_dstats.push_back(0); //temp stats are 0 to start with (update sets them)
+        }
+        
+                
+    }
+    
+    void temp_update() //resets everything *needs to be completed
+    {
+        
+        temp_istats[2]=str+get_ibonus("str_mod"); //str
+        temp_istats[3]=con+get_ibonus("con_mod"); //con
+        temp_istats[4]=dex+get_ibonus("dex_mod"); //dex
+        temp_istats[5]=intel+get_ibonus("intel_mod"); //intel
+        temp_istats[6]=wis+get_ibonus("wis_mod"); //wis
+        temp_istats[7]=cha+get_ibonus("cha_mod"); //cha
+        experience_ding=ding(level+1); //exp
+        
+        
+        temp_dstats[0]=1+get_dbonus("mana_regen_bonus")+2*get_mod(temp_istats[5]); //mana regen
+        temp_dstats[1]=get_dbonus("health_regen_bonus")+0.1*get_mod(temp_istats[3]); //health regen
+        temp_dstats[2]=get_dbonus("spell_resist_mod"); //spell resistance
+        
+        
+        temp_istats[0]=10+level*get_ibonus("con_mod"); //max health
+        temp_istats[1]=get_mod(temp_istats[4])+get_ibonus("init_mod"); //init
+        temp_istats[8]=100+get_ibonus("mana_mod")+10*get_mod(temp_istats[5]); //mana pool
+        temp_istats[9]=get_ibonus("dr_mod"); //dr
+        temp_istats[10]=get_mod(temp_istats[3])+get_ibonus("saves_mod"); //fort
+        temp_istats[11]=get_mod(temp_istats[4])+get_ibonus("saves_mod"); //refl
+        temp_istats[12]=get_mod(temp_istats[6])+get_ibonus("saves_mod"); //will
+        temp_istats[13]=get_carry_weight(); //current carry weight
+        temp_istats[14]=5*temp_istats[2]; //max carry weight
+        temp_istats[15]=get_mod(temp_istats[4])+get_ibonus("dodge_bonus"); //dodge bonus
+        
+
+
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    void swap(vector<equipment> &loc1, int c1, vector<equipment> &loc2, int c2)
+    {
+        equipment t=loc1[c1];
+        loc1[c1]=loc2[c2];
+        loc2[c2]=t;
+        
+    }
+    
+    void equip(vector<equipment> &holder, int c) //container it is in, which element in container
+    {
+        
+        int p=holder[c].position;
+        int eflag=1; //able to equip(1), not able(0);
+        
+        
+        switch(p)
+        {
+            case 0: //head
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[0].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,0);
+                }
+                break;
+                
+            }
+                
+            case 1: //neck
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[1].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,1);
+                }
+                break;
+                
+            }
+            case 2: //chest
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[2].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,2);
+                }
+                break;
+                
+            }
+            case 3: //back
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[3].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,3);
+                }
+                break;
+                
+            }
+            case 4: //wrist
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[4].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,4);
+                }
+                break;
+                
+            }
+            case 5: //glove
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[5].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,5);
+                }
+                break;
+                
+            }
+                
+            case 6: //one handed weapon
+            {
+                if(cequipment_list[6].type==0)//nothing in main hand
+                {
+                    
+                    if(temp_istats[13]+holder[c].weight>temp_istats[14]) //exceeds max weight
+                    {
+                        
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(holder,c,cequipment_list,6);
+                    }
+                    
+                    break;
+                    
+                }
+                
+                
+                if(cequipment_list[7].type==0)//nothing in off hand
+                {
+                    if(temp_istats[13]+holder[c].weight>temp_istats[14]) //exceeds max weight
+                    {
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(holder,c,cequipment_list,7);
+                    }
+                    
+                    break;
+                    
+                }
+                
+                if(cequipment_list[8].type!=0)//swapping for two-hand
+                {
+                    if((temp_istats[13]+holder[c].weight-cequipment_list[8].weight)>temp_istats[14]) //exceeds max weight
+                    {
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(cequipment_list,6,cequipment_list,8); //put 2h into main hand
+                        swap(holder,c,cequipment_list,6); //swap wep into main
+                    }
+                    
+                    break;
+                    
+                }
+                
+                
+                else //swapping for main hand
+                {
+                    if((temp_istats[13]+holder[c].weight-cequipment_list[6].weight)>temp_istats[14]) //exceeds max weight
+                    {
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(holder,c,cequipment_list,6);
+                    }
+                    
+                    break;
+                    
+                }
+                
+            }
+                
+            case 7: //two handed weapon
+            {
+                if(cequipment_list[6].type==0 && cequipment_list[7].type==0)//nothing in hands
+                {
+                    if((temp_istats[13]+holder[c].weight-cequipment_list[8].weight)>temp_istats[14]) //exceeds max weight
+                    {
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(holder,c,cequipment_list,8);
+                    }
+                    
+                }
+                break;
+            }
+                
+            case 8: //ring
+            {
+                if(cequipment_list[9].type==0)//nothing in finger1
+                {
+                    if(temp_istats[13]+holder[c].weight>temp_istats[14]) //exceeds max weight
+                    {
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(holder,c,cequipment_list,9);
+                    }
+                    
+                    break;
+                    
+                }
+                
+                
+                if(cequipment_list[10].type==0)//nothing in finger2
+                {
+                    if(temp_istats[13]+holder[c].weight>temp_istats[14]) //exceeds max weight
+                    {
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(holder,c,cequipment_list,10);
+                    }
+                    
+                    break;
+                    
+                }
+                
+                
+                else //swapping for finger1
+                {
+                    if((temp_istats[13]+holder[c].weight-cequipment_list[9].weight)>temp_istats[14]) //exceeds max weight
+                    {
+                        eflag=0; 
+                    }
+                    
+                    else
+                    {
+                        swap(holder,c,cequipment_list,9);
+                    }
+                    
+                    break;
+                    
+                }
+                
+            }
+                
+            case 9: //waist
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[11].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,11);
+                }
+                break;
+                
+            }
+                
+            case 10: //legs
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[12].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,12);
+                }
+                break;
+                
+            }
+                
+            case 11: //feet
+            {
+                if((temp_istats[13]+holder[c].weight-cequipment_list[13].weight)>temp_istats[14]) //exceeds max weight
+                {
+                    eflag=0; 
+                }
+                
+                else
+                {
+                    swap(holder,c,cequipment_list,13);
+                }
+                break;
+                
+            }
+                
+                
+            case 12: //aura
+            {
+                swap(holder,c,cequipment_list,14);
+                break;
+                
+            }
+                
+                
+        } //switch
+        
+        if(eflag==0) //if exceeds max weight
+        {
+            cout<<"cannot equip\n";
+        }
+        
+    } //equip function
+    
+    
+}; //character
+
+class biome
+{
+public:
+    string name;
+    int lighting; //darkness(0),dim light(1),normal(2),lit(3),bright(4);
+    int is_ground; //no(0), yes(1) (character walks on)
+    int ground; //none(0),firm earth(1),soft earth(2),sand(3),very light underbrush(4),light underbrush(5),underbrush(6),heavy underbrush(7),water(8),thin ice(9),ice(10),soft snow(11),packed snow(12), stone(13), light rubble(14), wood planks(15), air(16),activated object(17) special1(18),special2(19),special3(20)
+    int body; //cover tree(0),impassable tree(1),water(2),air(3),stone(4),soft earth(5),firm earth(6),sand(7),light brush(8),brush(9),heavy brush(10),ice(11),soft snow(12),packed snow(13),rubble(14),heavy rubble(15),pick-upable object(16), cloth door(17), wood door(18),stone door(19), heavy door(20), full-character(21), part of character(22), light rain(23), heavy rain(24), light snow(25), heavy snow(26), activated object(27), special1(28), special2(29), special3(30)
+    int passable; //no(0), yes(1)
+    vector<int>actions; //use equipment(0),strength check(1),acrobatics(2),open door(3),pick lock(4)
+    int check;//check to make if required action
+    equipment nkey; //key needed to use action
+    double move_cost; 
+    vector<character> character_list;
+    vector<equipment> equipment_list;
+    int object_count;
+    int gold;
+    vector<status_effect> status_effect_list;
+    
+    void set_biome(string n, int l,int i, int gr, int b, int p, double mc)
+    {
+        name=n; lighting=l; is_ground=i; ground=gr; body=b; passable=p; move_cost=mc;
+        
+    }
+};
+
+
+class map
+{
+public:
+    
+   biome grid[30][30][5];
+    //vector<vector<vector<biome> > > grid;
+};
+
+
+class database
+{
+public:
+    map c;
+    vector<biome> biome_list;
+    vector<character> player_list;
+    vector<character> mon_list;
+    vector<status_effect> status_effect_list;
+    vector<equipment> equipment_list;
+    vector<material> material_list;
+    vector<tag> etag_list; //equipment
+    vector<tag> btag_list; //biome
+    vector<tag> stag_list; //status effects
+    vector<tag> mtag_list; //monsters
+    vector<tag> matag_list; //materials
+    
+    int tsearch(string n)
+    {
+                
+        for(int i=0; i<=etag_list.size()-1; i++)
+        {
+            if(etag_list[i].name==n)
+                return etag_list[i].t;
+        }
+
+        
+        for(int i=0; i<=btag_list.size()-1; i++)
+        {
+            if(btag_list[i].name==n)
+                return btag_list[i].t;
+        }
+        
+        
+        for(int i=0; i<=stag_list.size()-1; i++)
+        {
+            if(stag_list[i].name==n)
+                return stag_list[i].t;
+        }
+        
+        for(int i=0; i<=mtag_list.size()-1; i++)
+        {
+            if(mtag_list[i].name==n)
+                return mtag_list[i].t;
+        }
+        for(int i=0; i<=matag_list.size()-1; i++)
+        {
+            if(matag_list[i].name==n)
+                return matag_list[i].t;
+        }
+
+
+        
+        return -1;
+
+    }
+    
+    void initialize()
+    {
+        //---------------------------materials---------------------------
+        material a;
+        tag q;
+        
+        a.set_mat("wood", 0, 0, 0, 0, 0, 0);
+        material_list.push_back(a);
+        q.set_tag(0,"wood");
+        matag_list.push_back(q);
+        
+        a.set_mat("bone", 0, 0, 0, 1, 0, 0);
+        material_list.push_back(a);
+        q.set_tag(1,"bone");
+        matag_list.push_back(q);
+        
+        a.set_mat("stone", 1, 0, 0, 0, 0, 1);
+        material_list.push_back(a);
+        q.set_tag(2,"stone");
+        matag_list.push_back(q);
+        
+        //---------------------------biomes---------------------------------
+        biome b;
+        tag t;
+        
+        b.set_biome("tree_cover_ground",2,1,1,0,1,5);
+        biome_list.push_back(b); 
+        t.set_tag(0,"tree_cover_ground");
+        btag_list.push_back(t);
+        
+        b.set_biome("tree_cover_trunk",2,0,0,0,1,5);
+        biome_list.push_back(b);  
+        t.set_tag(1,"tree_cover_trunk");
+        btag_list.push_back(t);
+        
+        b.set_biome("tree_canopy",2,0,0,9,1,7.5);
+        biome_list.push_back(b);
+        t.set_tag(2,"tree_canopy");
+        btag_list.push_back(t);
+        
+        b.set_biome("tree_ground",2,1,1,1,0,0);
+        biome_list.push_back(b);
+        t.set_tag(3,"tree_ground");
+        btag_list.push_back(t);
+        
+        b.set_biome("tree_trunk",2,0,0,1,0,0);
+        biome_list.push_back(b);
+        t.set_tag(4,"tree_trunk");
+        btag_list.push_back(t);
+        
+        b.set_biome("plains_grass_ground",3,1,4,3,1,5);
+        biome_list.push_back(b);
+        t.set_tag(5,"plains_grass_ground");
+        btag_list.push_back(t);
+        
+        b.set_biome("stone_ground",2,1,13,3,1,5);
+        biome_list.push_back(b);
+        t.set_tag(6,"stone_ground");
+        btag_list.push_back(t);
+        
+        b.set_biome("stone_wall",2,0,0,4,0,0);
+        biome_list.push_back(b);
+        t.set_tag(7,"stone_wall");
+        btag_list.push_back(t);
+        
+        b.set_biome("air_block",2,0,0,3,1,5);
+        biome_list.push_back(b);
+        t.set_tag(8,"air_block");
+        btag_list.push_back(t);
+        
+        
+        //----------------------------sample_map-------------------------------------------
+        map dungeon1;
+        
+        for(int j=0; j<=9; j++)
+        {
+            for(int i=0; i<=9; i++)
+            {
+                dungeon1.grid[i][j][0]=biome_list[6]; //10x10 floor at z=0
+            }
+        }
+        
+        for(int j=1; j<=8; j++)
+        {
+            for(int i=1; i<=8; i++)
+            {
+                dungeon1.grid[i][j][1]=biome_list[8]; //8x8 air at z=1
+            }
+        }
+        
+        for(int x=0; x<=9; x++)
+        {
+            dungeon1.grid[0][x][1]=biome_list[7]; //north stone wall
+            dungeon1.grid[x][9][1]=biome_list[7]; //east stone wall
+            dungeon1.grid[9][x][1]=biome_list[7]; //south stone wall
+            dungeon1.grid[x][0][1]=biome_list[7]; //west stone wall
+        }
+        
+        c=dungeon1;  
+        
+        //----------------------------status_effects-------------------------------------
+        status_effect s;
+        tag u;
+        
+        s.set_status_effect("fireball",1,0,6,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+        status_effect_list.push_back(s);
+        u.set_tag(0,"fireball");
+        stag_list.push_back(u);
+        
+        s.set_status_effect("lesser_heal",1,0,8,0.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1);
+        status_effect_list.push_back(s);
+        u.set_tag(1,"lesser_heal");
+        stag_list.push_back(u);
+        
+        s.set_status_effect("none",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+        status_effect_list.push_back(s);
+        u.set_tag(2,"none");
+        stag_list.push_back(u);
+
+
+        
+        //--------------------------equipment------------------------------
+        equipment e;
+        tag y;
+        
+        e.set_equipment("dagger",1,0,material_list[2],4,0,0,0,19,4,0,0,6,status_effect_list[2],1.0,2,0,0);
+        equipment_list.push_back(e);
+        y.set_tag(0,"dagger");
+        etag_list.push_back(y);
+        
+                
+        e.set_equipment("short_sword",1,0,material_list[2],6,0,0,0,19,3,0,0,6, status_effect_list[2],2.0,2,0,0);
+        equipment_list.push_back(e);
+        y.set_tag(1,"short_sword");
+        etag_list.push_back(y);
+        
+        
+        
+                //--------------------------monster characters-----------------------------------
+        character m;
+        tag p;
+        
+        m.set_character("orc", 1, 25, 20, 12, 8, 8, 6);
+        m.cstatus_effect_list.push_back(status_effect_list[2]);
+       
+        m.temp_update();
+        
+        vector<equipment> v;
+        v.push_back(equipment_list[1]);
+        m.equip(v, 0);
+
+        mon_list.push_back(m);
+        p.set_tag(0,"orc");
+        mtag_list.push_back(p);
+        
+        
+    } //initialize
+};
+
+
+
+
+
+#endif
